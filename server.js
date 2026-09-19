@@ -2,49 +2,46 @@ const express = require("express");
 
 const app = express();
 
-app.use(express.json());
-
 app.get("/", (req, res) => {
   res.send("API de horários de ônibus de Ibiúna funcionando!");
 });
 
 app.get("/consulta", async (req, res) => {
-  const idlinha = req.query.idlinha;
-
-  if (!idlinha) {
-    return res.status(400).json({
-      erro: "Informe o idlinha"
-    });
-  }
-
-  const url =
-    "https://vraposotavares.com.br/danubio/ajax/consulta_linha.php?idlinha=" +
-    encodeURIComponent(idlinha);
-
   try {
-    const resposta = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "*/*"
+    const idlinha = req.query.idlinha;
+
+    if (!idlinha) {
+      return res.status(400).send("Informe o idlinha.");
+    }
+
+    const dados = new URLSearchParams();
+    dados.append("idlinha", idlinha);
+    dados.append("inicialempresa", "R");
+
+    const resposta = await fetch(
+      "https://64.227.4.187/danubio/ajax/consulta_linha.php",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: dados.toString(),
       }
-    });
+    );
 
-    const conteudo = await resposta.text();
+    const texto = await resposta.text();
 
-    res.status(resposta.status);
-    res.set("Content-Type", resposta.headers.get("content-type") || "text/html");
-    res.send(conteudo);
+    res.set("Access-Control-Allow-Origin", "*");
+    res.status(resposta.status).send(texto);
 
   } catch (erro) {
-    res.status(500).json({
-      erro: "Erro ao consultar horários",
-      detalhe: erro.message
-    });
+    console.error(erro);
+    res.status(500).send("Erro ao consultar horários: " + erro.message);
   }
 });
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log("Servidor iniciado na porta " + PORT);
+  console.log("Servidor rodando na porta " + PORT);
 });
